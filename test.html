@@ -52,8 +52,9 @@
         constructor() {
           this.testResults = document.getElementsByClassName("test-results");
           // Hardcoding this here but this was a node project I would store it in a .env file and import the key here
-          this.apiKey = "";
+          this.apiKey = "c75f89dee2df592ecb5f3386294f4add";
           this.city = "Brentwood, Tennessee";
+          this.map = null;
         }
 
         async run() {
@@ -127,14 +128,51 @@
             data?.main?.humidity !== undefined
           ) {
             const weatherInfo = `
-                    <h2>Weather in ${data.name}, ${data.sys.country}</h2>
-                    <p>Temperature: ${data.main.temp} °F</p>
-                    <p>Humidity: ${data.main.humidity}%</p>
-                `;
+                      <div class="results">
+                          <h2>Weather in ${data.name}, ${data.sys.country}</h2>
+                          <p>Temperature: ${data.main.temp} °F</p>
+                          <p>Humidity: ${data.main.humidity}%</p>
+                      </div>
+                      `;
             this.setResults(weatherInfo);
+            this.showSatelliteMap(data.coord.lat, data.coord.lon);
           } else {
             this.setError("Invalid weather data received.");
           }
+        }
+
+        showSatelliteMap(lat, lon) {
+          // Check if the map has already been initialized
+          if (!this.map) {
+            // Initialize the map
+            this.map = L.map("map").setView([lat, lon], 1); // Set zoom level for the initial view
+
+            // Add a tile layer for the satellite map from OpenWeatherMap
+            L.tileLayer(
+              `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${this.apiKey}`,
+              {
+                maxZoom: 18,
+                attribution:
+                  '&copy; <a href="http://openweathermap.org/copyright">OpenWeatherMap</a>',
+              }
+            ).addTo(this.map);
+          } else {
+            // If the map is already initialized, just update its view
+            this.map.setView([lat, lon], 1); // Update the map view with the new coordinates
+          }
+        }
+
+        // convert latitude and longitude to tile coordinates
+        latLonToTile(lat, lon, zoom) {
+          const latRad = (lat * Math.PI) / 180;
+          const n = Math.pow(2, zoom);
+          const xTile = Math.floor(((lon + 180) / 360) * n);
+          const yTile = Math.floor(
+            ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) /
+              2) *
+              n
+          );
+          return { x: xTile, y: yTile };
         }
 
         setError(message) {
@@ -153,6 +191,8 @@
     <style>
       .button-container {
         text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
       }
 
       .button-container > button {
@@ -180,15 +220,26 @@
       }
       .error {
         color: red;
+        text-align: center;
+      }
+      .results {
+        text-align: center;
+        margin-top: 20px;
+      }
+      #map {
+        width: 100%;
+        height: 400px;
       }
     </style>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   </head>
   <body>
     <div class="test-results"></div>
 
     <div class="button-container"></div>
+    <div id="map"></div>
 
     <script>
       "use strict";
