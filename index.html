@@ -52,7 +52,8 @@
         constructor() {
           this.testResults = document.getElementsByClassName("test-results");
           // Hardcoding this here but this was a node project I would store it in a .env file and import the key here
-          this.apiKey = "";
+          this.apiKey = "c75f89dee2df592ecb5f3386294f4add";
+          // this.newsApiKey = "45bdd789b9ed40e2b729d39d8e7d5dd9";
           this.city = "Brentwood, Tennessee";
           this.map = null;
         }
@@ -71,6 +72,7 @@
                 this.city
               );
               this.displayWeather(weatherData);
+              // await this.fetchNews();
             }
           } catch (error) {
             // Catch the error and set dom element to an error message
@@ -84,6 +86,7 @@
               this.city
             );
             this.displayWeather(weatherData);
+            // await this.fetchNews();
           }
         }
         async fetchWeather(lat, lon, city) {
@@ -108,6 +111,41 @@
           }
         }
 
+        // async fetchNews() {
+        //   const url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=${this.newsApiKey}`;
+        //   try {
+        //     const response = await axios.get(url);
+        //     const articles = response.data.articles;
+        //     this.displayNews(articles);
+        //   } catch (error) {
+        //     console.error("Error fetching news data:", error);
+        //     this.setError(
+        //       "Unable to retrieve news articles. Please try again later."
+        //     );
+        //   }
+        // }
+
+        // displayNews(articles) {
+        //   if (articles.length > 0) {
+        //     const newsContent = articles
+        //       .map(
+        //         (article) => `
+        //                 <div class="news-article">
+        //                     <h3>${article.title}</h3>
+        //                     <p>${article.description || ""}</p>
+        //                     <a href="${
+        //                       article.url
+        //                     }" target="_blank">Read more</a>
+        //                 </div>
+        //             `
+        //       )
+        //       .join("");
+        //     this.newsResults.innerHTML = newsContent;
+        //   } else {
+        //     this.newsResults.innerHTML = "<p>No news articles available.</p>";
+        //   }
+        // }
+
         getCurrentLocation() {
           return new Promise((resolve, reject) => {
             if (navigator.geolocation) {
@@ -125,13 +163,29 @@
             data?.name &&
             data?.sys?.country &&
             data?.main?.temp !== undefined &&
-            data?.main?.humidity !== undefined
+            data?.main?.humidity !== undefined &&
+            data?.main?.feels_like !== undefined &&
+            data?.wind?.speed !== undefined &&
+            data?.sys?.sunrise !== undefined &&
+            data?.sys?.sunset !== undefined
           ) {
+            // Convert to milliseconds (JavaScript uses milliseconds)
+            const sunriseDate = new Date(data.sys.sunrise * 1000);
+            const sunsetDate = new Date(data.sys.sunset * 1000);
+
+            // Convert to local time string
+            const sunriseLocalTime = sunriseDate.toLocaleString();
+            const sunsetLocalTime = sunsetDate.toLocaleString();
+
             const weatherInfo = `
                       <div class="results">
                           <h2>Weather in ${data.name}, ${data.sys.country}</h2>
-                          <p>Temperature: ${data.main.temp} °F</p>
-                          <p>Humidity: ${data.main.humidity}%</p>
+                          <p><b>Temperature:</b> ${data.main.temp} °F</p>
+                          <p><b>Feels Like:</b> ${data.main.feels_like} °F</p>
+                          <p><b>Humidity:</b> ${data.main.humidity}%</p>
+                          <p><b>Wind Speed:</b> ${data.wind.speed} mph</p>
+                          <p><b>Sunrise:</b> ${sunriseLocalTime}</p>
+                          <p><b>Sunset:</b> ${sunsetLocalTime}</p>
                       </div>
                       `;
             this.setResults(weatherInfo);
@@ -145,7 +199,7 @@
           // Check if the map has already been initialized
           if (!this.map) {
             // Initialize the map
-            this.map = L.map("map").setView([lat, lon], 1); // Set zoom level for the initial view
+            this.map = L.map("map").setView([lat, lon], 5); // Set zoom level for the initial view
 
             // Add a tile layer for the satellite map from OpenWeatherMap
             L.tileLayer(
@@ -158,7 +212,7 @@
             ).addTo(this.map);
           } else {
             // If the map is already initialized, just update its view
-            this.map.setView([lat, lon], 1); // Update the map view with the new coordinates
+            this.map.setView([lat, lon], 5); 
           }
         }
 
@@ -225,11 +279,54 @@
       .results {
         text-align: center;
         margin-top: 20px;
+        margin-left:80px;
       }
       #map {
-        width: 100%;
-        height: 400px;
+        width: 100%; /* Set a fixed width */
+        height: 100%; /* Set a fixed height to match the width for a square */
+        position: relative; /* Required for Leaflet to work properly */
       }
+
+      body {
+        font-family: "Arial", sans-serif; /* A clean and readable font */
+        background-color: #f5f5f5; /* Light background for a modern look */
+        color: #333; /* Darker text for better readability */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh; /* Full viewport height */
+        margin: 0; /* Remove default margin */
+      }
+
+      /* .news-results {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .news-article {
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+      }
+
+      .news-article h3 {
+        font-size: 18px;
+        margin: 0;
+      }
+
+      .news-article p {
+        margin: 5px 0;
+      }
+
+      .news-article a {
+        color: #008000;
+        text-decoration: none;
+      }
+
+      .news-article a:hover {
+        text-decoration: underline;
+      } */
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
@@ -237,7 +334,7 @@
   </head>
   <body>
     <div class="test-results"></div>
-
+    <!-- <div class="news-results">hello</div> -->
     <div class="button-container"></div>
     <div id="map"></div>
 
@@ -255,7 +352,7 @@
         let testButton = document.createElement("button");
 
         testButton.type = "button";
-        testButton.innerText = "Get the Nashville Weather";
+        testButton.innerText = "Get Weather";
         testButton.onclick = () => test.run();
 
         context.appendChild(testButton);
