@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <title>FreightWise Programming Test</title>
+
+    <script>
+      "use strict";
+
+      /**
+       * Software Developer test.
+       *
+       * Doing research and making API calls are an important part of what we do at FreightWise.  This test will
+       * demonstrate your abilities to:
+       *
+       * - Make an API call
+       * - Research an API
+       * - Do basic DOM manipulation
+       * - Parse data
+       * - Handle errors
+       * - Be creative
+       *
+       * Feel free to ask any questions you may have.  Use a lot of comments, and explain why you are doing things.
+       * Don't spend more than 1-2 hours on it - we aren't expecting a finished product, but it should work and look
+       * nice.  Feel free to use any third party libraries, and if you do so, explain why you used them instead of
+       * built in browser APIs.
+       *
+       * Instructions:
+       * - Use the axios (https://github.com/axios/axios) request library to make an API call to the OpenWeatherMap
+       *   API for Current Weather Data using this API key:  25e989bd41e3e24ce13173d8126e0fd6
+       *   We've already imported this library to get you started.
+       * - Use either async/await or Promises.
+       * - Get the weather for Brentwood, TN, and write it to the DOM using the `setResults` method below.  Be
+       *   creative and make it look nice.
+       * - Handle errors and use the `setError` method below to display the error.  Also make it look nice.
+       * - If you find any mistakes in the test, fix them, and leave a comment about what you fixed and why.
+       * - Make sure your code is readable and maintainable.
+       * - Use plenty of descriptive comments.
+       * - Make sure your code runs in the latest version of Google Chrome and Firefox (ES6 is allowed).
+       * - Make your code live (GitHub with GitHub pages works nice).
+       * - Send a link to your finished test to dev-team-jobs@freightwisellc.com.
+       *
+       * Feel free to add your own twist to it (completely optional).  Here are a few ideas:
+       * - Sign up for NewsAPI.org and get the Top Headlines and show them along with the weather.
+       * - Use the browser location API to get the user's current location, and show that location's weather.
+       * - Show a satellite map of the weather in Brentwood.
+       * - Request a user's phone number and send them an SMS with the weather.
+       */
+      class Test {
+        constructor() {
+          this.testResults = document.getElementsByClassName("test-results");
+          // Hardcoding this here but this was a node project I would store it in a .env file and import the key here
+          this.apiKey = "";
+          // this.newsApiKey = "";
+          this.city = "Brentwood, Tennessee";
+          this.map = null;
+        }
+
+        async run() {
+          console.log(new Date().toISOString(), "[Test]", "Running the test");
+          let weatherData;
+
+          try {
+            const currentPosition = await this.getCurrentLocation();
+            if (currentPosition && currentPosition.coords) {
+              // sending GET request over to openweathermap api with latitude/longitude
+              weatherData = await this.fetchWeather(
+                currentPosition.coords.latitude,
+                currentPosition.coords.longitude,
+                this.city
+              );
+              this.displayWeather(weatherData);
+              // await this.fetchNews();
+            }
+          } catch (error) {
+            // Catch the error and set dom element to an error message
+            console.log(
+              "Unable to fetch weather data with current location:",
+              error
+            );
+            weatherData = await this.fetchWeather(
+              undefined,
+              undefined,
+              this.city
+            );
+            this.displayWeather(weatherData);
+            // await this.fetchNews();
+          }
+        }
+        async fetchWeather(lat, lon, city) {
+          let url;
+          // By default, construct the URL using latitude and longitude
+          if (lat && lon) {
+            url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${this.apiKey}&units=imperial`;
+          } else {
+            url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${this.apiKey}&units=imperial`;
+          }
+          try {
+            // Sending GET request using axios
+            const response = await axios.get(url);
+            return response.data;
+          } catch (error) {
+            console.error("Error fetching weather data:", error);
+            this.setError(
+              "Unable to retrieve weather data. Please try again later."
+            );
+
+            throw error;
+          }
+        }
+
+        // async fetchNews() {
+        //   const url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=${this.newsApiKey}`;
+        //   try {
+        //     const response = await axios.get(url);
+        //     const articles = response.data.articles;
+        //     this.displayNews(articles);
+        //   } catch (error) {
+        //     console.error("Error fetching news data:", error);
+        //     this.setError(
+        //       "Unable to retrieve news articles. Please try again later."
+        //     );
+        //   }
+        // }
+
+        // displayNews(articles) {
+        //   if (articles.length > 0) {
+        //     const newsContent = articles
+        //       .map(
+        //         (article) => `
+        //                 <div class="news-article">
+        //                     <h3>${article.title}</h3>
+        //                     <p>${article.description || ""}</p>
+        //                     <a href="${
+        //                       article.url
+        //                     }" target="_blank">Read more</a>
+        //                 </div>
+        //             `
+        //       )
+        //       .join("");
+        //     this.newsResults.innerHTML = newsContent;
+        //   } else {
+        //     this.newsResults.innerHTML = "<p>No news articles available.</p>";
+        //   }
+        // }
+
+        getCurrentLocation() {
+          return new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(resolve, reject);
+            } else {
+              reject(
+                new Error("Geolocation is not supported by this browser.")
+              );
+            }
+          });
+        }
+
+        displayWeather(data) {
+          if (
+            data?.name &&
+            data?.sys?.country &&
+            data?.main?.temp !== undefined &&
+            data?.main?.humidity !== undefined &&
+            data?.main?.feels_like !== undefined &&
+            data?.wind?.speed !== undefined &&
+            data?.sys?.sunrise !== undefined &&
+            data?.sys?.sunset !== undefined
+          ) {
+            // Convert to milliseconds (JavaScript uses milliseconds)
+            const sunriseDate = new Date(data.sys.sunrise * 1000);
+            const sunsetDate = new Date(data.sys.sunset * 1000);
+
+            // Convert to local time string
+            const sunriseLocalTime = sunriseDate.toLocaleString();
+            const sunsetLocalTime = sunsetDate.toLocaleString();
+
+            const weatherInfo = `
+                      <div class="results">
+                          <h2>Weather in ${data.name}, ${data.sys.country}</h2>
+                          <p><b>Temperature:</b> ${data.main.temp} °F</p>
+                          <p><b>Feels Like:</b> ${data.main.feels_like} °F</p>
+                          <p><b>Humidity:</b> ${data.main.humidity}%</p>
+                          <p><b>Wind Speed:</b> ${data.wind.speed} mph</p>
+                          <p><b>Sunrise:</b> ${sunriseLocalTime}</p>
+                          <p><b>Sunset:</b> ${sunsetLocalTime}</p>
+                      </div>
+                      `;
+            this.setResults(weatherInfo);
+            this.showSatelliteMap(data.coord.lat, data.coord.lon);
+          } else {
+            this.setError("Invalid weather data received.");
+          }
+        }
+
+        showSatelliteMap(lat, lon) {
+          // Check if the map has already been initialized
+          if (!this.map) {
+            // Initialize the map
+            this.map = L.map("map").setView([lat, lon], 5); // Set zoom level for the initial view
+
+            // Add a tile layer for the satellite map from OpenWeatherMap
+            L.tileLayer(
+              `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${this.apiKey}`,
+              {
+                maxZoom: 18,
+                attribution:
+                  '&copy; <a href="http://openweathermap.org/copyright">OpenWeatherMap</a>',
+              }
+            ).addTo(this.map);
+          } else {
+            // If the map is already initialized, just update its view
+            this.map.setView([lat, lon], 5); 
+          }
+        }
+
+        // convert latitude and longitude to tile coordinates
+        latLonToTile(lat, lon, zoom) {
+          const latRad = (lat * Math.PI) / 180;
+          const n = Math.pow(2, zoom);
+          const xTile = Math.floor(((lon + 180) / 360) * n);
+          const yTile = Math.floor(
+            ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) /
+              2) *
+              n
+          );
+          return { x: xTile, y: yTile };
+        }
+
+        setError(message) {
+          const resultsContainer = this.testResults[0];
+          resultsContainer.className = "error";
+          resultsContainer.innerHTML = `<p>${message}</p>`;
+        }
+
+        setResults(results) {
+          const resultsContainer = this.testResults[0];
+          resultsContainer.innerHTML = (results || "").toString();
+        }
+      }
+    </script>
+
+    <style>
+      .button-container {
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+
+      .button-container > button {
+        margin: 0;
+        padding: 10px 18px;
+        color: white;
+        background-color: #008000;
+        border: none;
+        border-radius: 3px;
+        transition: all 200ms ease-in-out;
+        font-size: 14px;
+      }
+
+      .button-container > button:hover {
+        background-color: #00a000;
+      }
+
+      .button-container > button:active {
+        background-color: #006000;
+      }
+
+      .loading {
+        color: #808080;
+        font-style: italic;
+      }
+      .error {
+        color: red;
+        text-align: center;
+      }
+      .results {
+        text-align: center;
+        margin-top: 20px;
+        margin-left:80px;
+      }
+      #map {
+        width: 100%; /* Set a fixed width */
+        height: 100%; /* Set a fixed height to match the width for a square */
+        position: relative; /* Required for Leaflet to work properly */
+      }
+
+      body {
+        font-family: "Arial", sans-serif; /* A clean and readable font */
+        background-color: #f5f5f5; /* Light background for a modern look */
+        color: #333; /* Darker text for better readability */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh; /* Full viewport height */
+        margin: 0; /* Remove default margin */
+      }
+
+      /* .news-results {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .news-article {
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+      }
+
+      .news-article h3 {
+        font-size: 18px;
+        margin: 0;
+      }
+
+      .news-article p {
+        margin: 5px 0;
+      }
+
+      .news-article a {
+        color: #008000;
+        text-decoration: none;
+      }
+
+      .news-article a:hover {
+        text-decoration: underline;
+      } */
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  </head>
+  <body>
+    <div class="test-results"></div>
+    <!-- <div class="news-results">hello</div> -->
+    <div class="button-container"></div>
+    <div id="map"></div>
+
+    <script>
+      "use strict";
+
+      /**
+       * Creates a button for kicking off the test and adds it to the DOM.
+       *
+       * @param {HTMLElement} context  the parent element to add the button to
+       * @param {Test}        test     the test to be executed
+       * @returns {HTMLElement} the button added to the test
+       */
+      function addButtonForTest(context, test) {
+        let testButton = document.createElement("button");
+
+        testButton.type = "button";
+        testButton.innerText = "Get Weather";
+        testButton.onclick = () => test.run();
+
+        context.appendChild(testButton);
+
+        return testButton;
+      }
+
+      // Create the Test and add a button to the UI for running the test
+      const test = new Test();
+      const buttonContainer =
+        document.getElementsByClassName("button-container")[0];
+
+      addButtonForTest(buttonContainer, test);
+    </script>
+  </body>
+</html>
